@@ -62,6 +62,9 @@ def get_meta(startLat: str, startLng: str, endLat: str, endLng: str):
             "result": navigate(start_point, end_point),
         }
 
+    if cache_key in cache:
+        raise HTTPException(status_code=201, detail="In Progress")
+
     raise HTTPException(status_code=400, detail="invalid request")
 
 
