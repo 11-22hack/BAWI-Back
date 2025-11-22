@@ -35,10 +35,9 @@ if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENT
         log "⚠️ GOOGLE_CLOUD_PROJECT 환경변수가 없어 프로젝트 설정은 건너뜁니다."
     fi
 else
-    log "❌ [치명적 오류] Google Cloud 인증 파일이 없습니다."
-    log "   Dokploy 환경변수에 'GCP_SA_KEY'를 설정하거나 볼륨 마운트로 키 파일을 제공해야 합니다."
-    # 명시적으로 에러 코드로 종료하여 컨테이너 실행을 막음
-    exit 1
+    log "⚠️ Google Cloud 인증 파일이 없습니다."
+    log "   수동으로 'gcloud auth login'을 수행했거나 로컬 환경이라면 이 메시지를 무시해도 됩니다."
+    # 수동 제어를 위해 강제 종료하지 않고 서버 실행 단계로 넘어감
 fi
 
 # 3. 서버 실행

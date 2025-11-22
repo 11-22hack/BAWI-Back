@@ -42,5 +42,5 @@ ENV DATA_DIR=/app/data
 # 포트 노출
 EXPOSE 80
 
-# 시작 스크립트 실행
-CMD ["./start.sh"]
+# 시작 스크립트 자동 실행 대신 대기 (수동 제어 모드)
+CMD ["sleep", "infinity"]
