@@ -1,31 +1,47 @@
 #!/bin/bash
 set -e
 
-# 1. GCP_SA_KEY 환경변수에 JSON 내용이 들어있는 경우 (Base64 인코딩 없이 Raw JSON 가정)
-# Dokploy 등의 환경변수에서 줄바꿈이 어려울 수 있으므로, 필요한 경우 base64 디코딩 로직을 추가할 수도 있습니다.
+# 로그 출력을 즉시 확인하기 위해 stderr로 출력
+log() {
+    echo "[start.sh] $1" >&2
+}
+
+log "🚀 컨테이너 시작 스크립트 실행됨"
+
+# 1. GCP_SA_KEY 환경변수 처리
 if [ -n "$GCP_SA_KEY" ]; then
-    echo "🔑 GCP_SA_KEY 환경변수 감지됨. 인증 파일 생성 중..."
+    log "🔑 GCP_SA_KEY 환경변수 감지됨. 인증 파일 생성 중..."
     echo "$GCP_SA_KEY" > /app/gcp-key.json
     export GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json
+else
+    log "⚠️ GCP_SA_KEY 환경변수가 없습니다. GOOGLE_APPLICATION_CREDENTIALS가 설정되어 있는지 확인하세요."
 fi
 
-# 2. GOOGLE_APPLICATION_CREDENTIALS 설정 확인 및 gcloud 로그인
+# 2. 필수: gcloud 로그인 수행
+# 인증 정보가 없으면 서버를 띄우지 않고 종료하여 배포 실패로 처리되게 함
 if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-    echo "✅ 인증 파일 확인: $GOOGLE_APPLICATION_CREDENTIALS"
+    log "✅ 인증 파일 확인됨: $GOOGLE_APPLICATION_CREDENTIALS"
 
-    echo "☁️ gcloud 로그인 시도 중..."
+    log "☁️ gcloud 로그인 시도 중..."
+    # 로그인 실패 시 스크립트가 중단되도록 set -e가 동작함. 상세 로그를 위해 에러는 그대로 출력됨.
     gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
 
+    log "☁️ gcloud 로그인 성공"
+
     if [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
-        echo "☁️ gcloud 프로젝트 설정: $GOOGLE_CLOUD_PROJECT"
+        log "☁️ gcloud 프로젝트 설정: $GOOGLE_CLOUD_PROJECT"
         gcloud config set project "$GOOGLE_CLOUD_PROJECT" --quiet
+    else
+        log "⚠️ GOOGLE_CLOUD_PROJECT 환경변수가 없어 프로젝트 설정은 건너뜁니다."
     fi
 else
-    echo "⚠️ 경고: Google Cloud 인증 정보(GOOGLE_APPLICATION_CREDENTIALS 또는 GCP_SA_KEY)가 없습니다."
+    log "❌ [치명적 오류] Google Cloud 인증 파일이 없습니다."
+    log "   Dokploy 환경변수에 'GCP_SA_KEY'를 설정하거나 볼륨 마운트로 키 파일을 제공해야 합니다."
+    # 명시적으로 에러 코드로 종료하여 컨테이너 실행을 막음
+    exit 1
 fi
 
 # 3. 서버 실행
 PORT=${PORT:-80}
-echo "🚀 서버 시작 (Port: $PORT)"
+log "🔥 서버 실행 시작 (Port: $PORT)"
 exec uvicorn src.server:app --host 0.0.0.0 --port "$PORT"
-

@@ -34,6 +34,7 @@ RUN chmod +x start.sh
 
 # 환경 변수 설정
 ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
 ENV PORT=80
 ENV DATA_DIR=/app/data
